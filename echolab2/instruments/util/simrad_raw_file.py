@@ -98,11 +98,12 @@ class RawSimradFile(BufferedReader):
     '''
     #: Dict object with datagram header/python class key/value pairs
     DGRAM_TYPE_KEY = {'RAW': parsers.SimradRawParser(),
-                      'CON': parsers.SimradConfigParser(),
-                      'TAG': parsers.SimradAnnotationParser(),
-                      'NME': parsers.SimradNMEAParser(),
-                      'BOT': parsers.SimradBottomParser(),
-                      'DEP': parsers.SimradDepthParser()}
+                                  'CON': parsers.SimradConfigParser(),
+                                  'TAG': parsers.SimradAnnotationParser(),
+                                  'NME': parsers.SimradNMEAParser(),
+                                  'BOT': parsers.SimradBottomParser(),
+                                  'DEP': parsers.SimradDepthParser(),
+                                  'XML': parsers.SimradXMLParser()}
 
 
     def __init__(self, name, mode='rb', closefd=True, return_raw=False, buffer_size=1024*1024):

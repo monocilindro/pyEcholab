@@ -17,8 +17,7 @@ import os
 import datetime
 from pytz import timezone
 import numpy as np
-from .util.ek60_raw_file import RawSimradFile, SimradEOF
-#from ..ping_data import PingData
+from .util.simrad_raw_file import RawSimradFile, SimradEOF
 from ..ping_data import PingData
 from ..processing.processed_data import ProcessedData
 from ..processing import line

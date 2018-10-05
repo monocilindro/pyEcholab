@@ -36,11 +36,13 @@ import logging
 import struct
 import re
 import sys
+from lxml import etree
 from .date_conversion import nt_to_unix
 
 
 __all__ = ['SimradNMEAParser', 'SimradDepthParser', 'SimradBottomParser',
-            'SimradAnnotationParser', 'SimradConfigParser', 'SimradRawParser']
+            'SimradAnnotationParser', 'SimradConfigParser', 'SimradRawParser',
+            'SimradXMLParser']
 
 log = logging.getLogger(__name__)
 
@@ -207,6 +209,95 @@ class SimradDepthParser(_SimradDatagramParser):
                 datagram_contents.extend([data['depth'][indx], data['reflectivity'][indx], data['unused'][indx]])
 
         return struct.pack(datagram_fmt, *datagram_contents)
+
+
+
+class SimradXMLParser(_SimradDatagramParser):
+    '''
+    XML datagrams from EK80 systems
+
+        type:         string == 'XML0'
+        low_date:     long uint representing LSBytes of 64bit NT date
+        high_date:    long uint representing MSBytes of 64bit NT date
+        timestamp:    datetime.datetime object of NT date, assumed to be UTC
+
+
+    The following methods are defined:
+
+        from_string(str):    parse a raw EK80 XML datagram
+                            (with leading/trailing datagram size stripped)
+
+        to_string():         Returns the datagram as a raw XML string (including leading/trailing size fields)
+                            ready for writing to disk
+
+    '''
+    def __init__(self):
+        #  define the datagram header elements
+        #  the key is the version number and the data is a list of tuples that defines the element name
+        #  and the struct package data type which is used when unpacking the raw data.
+        headers = {0: [('type', '4s'),
+                     ('low_date', 'L'),
+                     ('high_date', 'L'),
+                     ]
+                }
+        _SimradDatagramParser.__init__(self, "XML", headers)
+
+    def _unpack_contents(self, raw_string, version):
+        '''
+
+        '''
+        #  unpack the datagram header elements (defined in the headers dict above)
+        header_values = struct.unpack(self.header_fmt(version), raw_string[:self.header_size(version)])
+
+        #  create a dict to put the parsed data in - we return this to the caller
+        data = {}
+
+        #  stick the unpacked header elements into the data dict
+        for indx, field in enumerate(self.header_fields(version)):
+            data[field] = header_values[indx]
+            if isinstance(data[field], bytes):
+                data[field] = data[field].decode()
+
+        #  compute the timestamp as a numpy datetime object
+        data['timestamp'] = nt_to_unix((data['low_date'], data['high_date']))
+
+        #  get the datagram header size - we use this to index into the raw_string below
+        buf_indx = self.header_size(version)
+
+        #  handle the datagram versions
+        if version == 0:
+            #  parse the raw XML - ideally we parse this into a dict - need to figure out how
+            data['xml_tree'] = etree.fromstring(raw_string[buf_indx:])
+
+        return data
+
+
+    def _pack_contents(self, data, version):
+
+        datagram_fmt      = self.header_fmt(version)
+        datagram_contents = []
+
+        if version == 0:
+
+            lengths = [len(data['depth']), len(data['reflectivity']), len(data['unused']), data['transceiver_count']]
+
+            if len(set(lengths)) != 1:
+                min_indx = min(lengths)
+                log.warning('Data lengths mismatched:  d:%d, r:%d, u:%d, t:%d',
+                    *lengths)
+                log.warning('  Using minimum value:  %d', min_indx)
+                data['transceiver_count'] = min_indx
+
+            else:
+                min_indx = data['transceiver_count']
+
+            for field in self.header_fields(version):
+                datagram_contents.append(data[field])
+
+
+        #return struct.pack(datagram_fmt, *datagram_contents)
+
+
 
 
 class SimradBottomParser(_SimradDatagramParser):

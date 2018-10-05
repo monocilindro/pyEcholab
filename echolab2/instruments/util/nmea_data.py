@@ -419,7 +419,7 @@ class nmea_data(object):
 
     def _get_indices(self, start_time, end_time, time_order=True):
         """
-        Return index of data contained in speciofied time range.
+        Return index of data contained in specified time range.
 
         _get_indices returns an index array containing the indices contained
         in the range defined by the times provided. By default the indexes
