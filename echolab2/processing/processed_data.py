@@ -30,7 +30,8 @@
 
 import numpy as np
 from ..ping_data import PingData
-from echolab2.processing import mask
+#from echolab2.processing import mask
+from ..processing import mask
 
 
 class ProcessedData(PingData):
